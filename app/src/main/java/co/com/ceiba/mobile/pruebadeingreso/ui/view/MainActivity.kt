@@ -4,7 +4,6 @@ import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
@@ -12,6 +11,7 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import co.com.ceiba.mobile.pruebadeingreso.data.db.entities.UserEntity
+import co.com.ceiba.mobile.pruebadeingreso.data.models.users_models.UsersModel
 import co.com.ceiba.mobile.pruebadeingreso.databinding.ActivityMainBinding
 import co.com.ceiba.mobile.pruebadeingreso.ui.view.main_rv_adapter.ClickListener
 import co.com.ceiba.mobile.pruebadeingreso.ui.view.main_rv_adapter.MainAdapter
@@ -47,6 +47,11 @@ class MainActivity : AppCompatActivity(), ClickListener {
         mainViewModel.viewModelScope.launch(Dispatchers.Default) {
             composeRecycler()
         }
+
+        mainViewModel.usersModel.observe(this, Observer {
+            adapter.setItems(parseData(it))
+            users = parseData(it)
+        })
 
         mainViewModel.isLoading.observe(this, Observer {
             binding.loading.isVisible = it
@@ -84,26 +89,36 @@ class MainActivity : AppCompatActivity(), ClickListener {
 
     fun openPosts(user: UserEntity) {
         val intent = Intent(this, PostActivity::class.java)
-        intent.putExtra("userId", user.id)
-        intent.putExtra("name", user.name)
-        intent.putExtra("email", user.email)
+        var bundle = Bundle()
+        bundle.putInt("userId", user.id)
+        bundle.putString("name", user.name)
+        bundle.putString("phone", user.phone)
+        bundle.putString("email", user.email)
+        intent.putExtra("data", bundle)
         startActivity(intent)
     }
 
     private fun filter(text: String) {
-        val filterdNames: MutableList<UserEntity> = emptyList<UserEntity>().toMutableList()
+        val filteredNames: MutableList<UserEntity> = emptyList<UserEntity>().toMutableList()
 
         for (user in users) {
             if (user.name?.lowercase()!!.contains(text.lowercase())) {
-                filterdNames.add(user)
+                filteredNames.add(user)
             }
         }
 
-        adapter.filterList(filterdNames)
+        adapter.filterList(filteredNames)
     }
 
     override fun OnClick(userEntity: UserEntity) {
         openPosts(userEntity)
+    }
+
+    fun parseData(it: List<UsersModel>): MutableList<UserEntity> {
+        val parse = listOf<UserEntity>().toMutableList()
+        for (i in it)
+            parse.add(UserEntity(i.id, i.name, i.username, i.email, i.phone, i.website))
+        return parse
     }
 
 }
