@@ -1,4 +1,4 @@
-package co.com.ceiba.mobile.pruebadeingreso.domain
+package co.com.ceiba.mobile.pruebadeingreso.domain.users
 
 import co.com.ceiba.mobile.pruebadeingreso.data.UsersRepository
 import javax.inject.Inject

@@ -12,9 +12,6 @@ interface UsersDao {
     @Query("SELECT * FROM user")
     fun getAllUsers(): List<UserEntity>
 
-    @Query("SELECT * FROM user WHERE name LIKE :name")
-    fun getUsersByName(name: String): List<UserEntity>
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertAllUsers(users: List<UserEntity>)
 

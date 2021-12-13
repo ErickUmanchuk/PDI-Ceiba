@@ -2,18 +2,18 @@ package co.com.ceiba.mobile.pruebadeingreso.ui.view
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
-import android.widget.Toast
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.lifecycle.Observer
 import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import co.com.ceiba.mobile.pruebadeingreso.data.db.entities.UserEntity
-import co.com.ceiba.mobile.pruebadeingreso.data.models.users_models.UsersModel
 import co.com.ceiba.mobile.pruebadeingreso.databinding.ActivityMainBinding
+import co.com.ceiba.mobile.pruebadeingreso.ui.view.main_rv_adapter.ClickListener
 import co.com.ceiba.mobile.pruebadeingreso.ui.view.main_rv_adapter.MainAdapter
 import co.com.ceiba.mobile.pruebadeingreso.ui.view.posts.PostActivity
 import co.com.ceiba.mobile.pruebadeingreso.ui.viewmodel.MainViewModel
@@ -22,27 +22,27 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), ClickListener {
 
     private lateinit var binding: ActivityMainBinding
 
     private val mainViewModel: MainViewModel by viewModels()
+
+    private var users: MutableList<UserEntity> = emptyList<UserEntity>().toMutableList()
+
+    private var adapter: MainAdapter = MainAdapter(mutableListOf(), this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        binding.recyclerViewSearchResults.apply {
-            layoutManager = LinearLayoutManager(context)
-            adapter = MainAdapter(mutableListOf())
-        }
+        val layoutManager = LinearLayoutManager(this)
+        adapter = MainAdapter(mutableListOf(), this)
+        binding.recyclerViewSearchResults.adapter = adapter
+        binding.recyclerViewSearchResults.layoutManager = layoutManager
 
         mainViewModel.onCreate()
-
-        mainViewModel.usersModel.observe(this, Observer {
-            checkUsers(it)
-        })
 
         mainViewModel.viewModelScope.launch(Dispatchers.Default) {
             composeRecycler()
@@ -52,27 +52,58 @@ class MainActivity : AppCompatActivity() {
             binding.loading.isVisible = it
         })
 
-    }
-
-    private fun checkUsers(usersList: List<UsersModel>) {
-        mainViewModel.viewModelScope.launch(Dispatchers.IO) {
-            if (getAllUsersOnDb().isEmpty()) {
-                mainViewModel.insertUsers(usersList)
+        binding.editTextSearch.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
+                //Do Nothing
             }
-        }
+
+            override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
+                val query = p0.toString().lowercase()
+                filter(query)
+            }
+
+            override fun afterTextChanged(p0: Editable?) {
+                //Do Nothing
+            }
+
+        })
     }
 
-    suspend fun getAllUsersOnDb(): List<UserEntity> {
+    fun getAllUsersOnDb(): List<UserEntity> {
         return mainViewModel.getAllUsers()
     }
 
-    suspend fun composeRecycler() {
-        (binding.recyclerViewSearchResults.adapter as MainAdapter).setItems(getAllUsersOnDb())
+    fun composeRecycler() {
+        users = getAllUsersOnDb().toMutableList()
+        if (users.isNullOrEmpty()) {
+            mainViewModel.insertUsers(users)
+        } else {
+            (binding.recyclerViewSearchResults.adapter as MainAdapter).setItems(users)
+        }
     }
 
-    fun openPosts() {
+    fun openPosts(user: UserEntity) {
         val intent = Intent(this, PostActivity::class.java)
+        intent.putExtra("userId", user.id)
+        intent.putExtra("name", user.name)
+        intent.putExtra("email", user.email)
         startActivity(intent)
+    }
+
+    private fun filter(text: String) {
+        val filterdNames: MutableList<UserEntity> = emptyList<UserEntity>().toMutableList()
+
+        for (user in users) {
+            if (user.name?.lowercase()!!.contains(text.lowercase())) {
+                filterdNames.add(user)
+            }
+        }
+
+        adapter.filterList(filterdNames)
+    }
+
+    override fun OnClick(userEntity: UserEntity) {
+        openPosts(userEntity)
     }
 
 }
