@@ -1,4 +1,4 @@
-package co.com.ceiba.mobile.pruebadeingreso.view.posts
+package co.com.ceiba.mobile.pruebadeingreso.ui.view.posts
 
 import android.os.Bundle
 import android.os.PersistableBundle
